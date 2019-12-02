@@ -12,7 +12,7 @@
 
 #define BASE  0
 #define ITERS 1 //originally 20
-#define DELTA 512 //originally 113
+#define DELTA 8 //originally 113
 
 #define BLOCKSIZE 2
 
@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     //mmm_ijk(a0,b0,c0);
     bijk(a0, b0, c0, BASE+(i+1)*DELTA, BLOCKSIZE);
+    printMat(c0);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     time_stamp[OPTION][i] = diff(time1,time2);
   }
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
     set_matrix_length(c0,BASE+(i+1)*DELTA);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     bbijk(a0,b0,c0, BASE+(i+1)*DELTA, BLOCKSIZE);
+    printMat(c0);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     time_stamp[OPTION][i] = diff(time1,time2);
   }
@@ -213,7 +215,7 @@ void printMat(matrix_ptr A) {
 	
 	for (i = 0; i < length; i++) {
 		for (j = 0; j < length; j++) {
-			printf("%f\n", a0[i*length+j]);
+			printf("%05f\t", a0[i*length+j]);
 		}
 		printf("\n");
 	}
