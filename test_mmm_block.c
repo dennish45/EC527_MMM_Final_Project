@@ -14,7 +14,7 @@
 #define ITERS 1 //originally 20
 #define DELTA 8 //originally 113
 
-#define BLOCKSIZE 2
+#define BLOCKSIZE 4
 
 #define OPTIONS 2
 #define IDENT 0
