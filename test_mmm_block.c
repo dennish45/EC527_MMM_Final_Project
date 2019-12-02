@@ -45,6 +45,7 @@ int main(int argc, char *argv[])
   void mmm_jki(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
   void bbijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
+  void printMat(matrix_ptr A);
 
   long int i, j, k;
   long int time_sec, time_ns;
@@ -200,6 +201,25 @@ struct timespec diff(struct timespec start, struct timespec end)
 }
 
 /*************************************************/
+
+//blocking matrix multiply
+void printMat(matrix_ptr A) {
+	int i, j;
+	data_t sum;
+	long int get_matrix_length(matrix_ptr m);
+	data_t *get_matrix_start(matrix_ptr m);
+	long int length = get_matrix_length(A);
+	data_t *a0 = get_matrix_start(A);
+	
+	for (i = 0; i < length; i++) {
+		for (j = 0; j < length; j++) {
+			printf("%f\n", a0[i*length+j]);
+		}
+		printf("\n");
+	}
+
+
+}
 
 //blocking matrix multiply
 void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
