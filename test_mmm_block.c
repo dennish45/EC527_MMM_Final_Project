@@ -12,9 +12,10 @@
 
 #define BASE  0
 #define ITERS 1 //originally 20
-#define DELTA 8 //originally 113
+#define DELTA 16 //originally 113
 
-#define BLOCKSIZE 4
+#define BLOCKSIZE 8
+#define INNERBLOCKSIZE 2
 
 #define OPTIONS 2
 #define IDENT 0
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     //mmm_ijk(a0,b0,c0);
     bijk(a0, b0, c0, BASE+(i+1)*DELTA, BLOCKSIZE);
-    printMat(c0);
+    //printMat(c0);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     time_stamp[OPTION][i] = diff(time1,time2);
   }
@@ -83,7 +84,7 @@ int main(int argc, char *argv[])
     set_matrix_length(c0,BASE+(i+1)*DELTA);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     bbijk(a0,b0,c0, BASE+(i+1)*DELTA, BLOCKSIZE);
-    printMat(c0);
+    //printMat(c0);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     time_stamp[OPTION][i] = diff(time1,time2);
   }
@@ -204,7 +205,6 @@ struct timespec diff(struct timespec start, struct timespec end)
 
 /*************************************************/
 
-//blocking matrix multiply
 void printMat(matrix_ptr A) {
 	int i, j;
 	data_t sum;
@@ -245,6 +245,7 @@ void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 				for (j = jj; j < jj + bsize; j++) {
 					sum = c0[i*length+j];
 					for (k = kk; k < kk + bsize; k++) {
+						//printf("%f\n", a0[i*length+j]);
 						sum += a0[i*length+k]*b0[k*length+j];
 					}
 					c0[i*length+j] = sum;
@@ -254,7 +255,7 @@ void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 	}
 }
 
-//blocking matrix multiply
+//register blocking matrix multiply
 void bbijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 	int i, j, k, i0, j0, k0, i00, j00, k00;
 	data_t sum;
@@ -265,7 +266,7 @@ void bbijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 	data_t *b0 = get_matrix_start(B);
 	data_t *c0 = get_matrix_start(C);
 	int en = bsize * (n/bsize); // Amount that fits evenly into blocks
-	int innerbsize = bsize / 2;
+	int innerbsize = INNERBLOCKSIZE;
 	
 	for (i = 0; i < n; i++)
 		for (j = 0; j < n; j++)
@@ -275,14 +276,15 @@ void bbijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 	for (i=0; i<length; i+=bsize)
 		for (j=0; j<length; j+=bsize)
 			for (k=0; k<length; k+=bsize)
-			// mini-MMM loop nest (i0, j0, k0)
+				// mini-MMM loop nest (i0, j0, k0)
 				for (i0=i; i0<(i + bsize); i0+=innerbsize)
 					for (j0=j; j0<(j + bsize); j0+=innerbsize)
 						for (k0=k; k0<(k + bsize); k0+=innerbsize)
-						// micro-MMM loop nest (j00, i00)
-							for (k00=k0; k00<=(k0 + innerbsize); k00++)
-								for (j00=j0; j00<=(j0 + innerbsize); j00++)
-									for (i00=i0; i00<=(i0 + innerbsize); i00++)
+							// micro-MMM loop nest (j00, i00)
+							for (k00=k0; k00<(k0 + innerbsize); k00++)
+								for (j00=j0; j00<(j0 + innerbsize); j00++)
+									for (i00=i0; i00<(i0 + innerbsize); i00++)
+										//printf("i: %d\t i0: %d\ti00: %d\tj: %d\t j0: %d\tj00: %d\tk: %d\t k0: %d\tk00: %d\n", i, i0, i00, j, j0, j00, k, k0, k00);
 										c0[i00*length+j00] += a0[i00*length+k00] * b0[k00*length+j00];
 
 }
