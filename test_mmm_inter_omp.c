@@ -58,19 +58,19 @@ void detect_threads_setting()
  */
 #pragma omp parallel for
   for(i=0; i<1; i++) { ognt = omp_get_num_threads(); }
-  printf("omp's default number of threads is %d\n", ognt);
+  //printf("omp's default number of threads is %d\n", ognt);
   /* If this is illegal (0 or less), default to the "#define THREADS"
      value that is defined above */
   if (ognt <= 0) {
     if (THREADS != ognt) {
-      printf("Overriding with #define THREADS value %d\n", THREADS);
+      //printf("Overriding with #define THREADS value %d\n", THREADS);
       ognt = THREADS;
     }
   }
   omp_set_num_threads(ognt);
 #pragma omp parallel for
   for(i=0; i<1; i++) { ognt = omp_get_num_threads(); }
-  printf("Using %d threads for OpenMP\n", ognt);
+  //printf("Using %d threads for OpenMP\n", ognt);
 }
 
 /************************************************************************/
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   long int time_sec, time_ns;
   long int MAXSIZE = BASE+(ITERS+1)*DELTA; // MAXSIZE = ITERS * DELTA = rowlen, array = rowlen*rowlen
 
-  printf("Hello World -- OpenMP Matrix Multiply\n");
+  //printf("Hello World -- OpenMP Matrix Multiply\n");
 
   detect_threads_setting();
 
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
   zero_matrix(c0, MAXSIZE);
 
   OPTION = 0;
-  printf("Doing OPTION %d...\n", OPTION);
+  //printf("Doing OPTION %d...\n", OPTION);
   for (i = 0; i < ITERS; i++) {
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
@@ -123,15 +123,15 @@ int main(int argc, char *argv[])
     bkij(a0, b0, c0, BASE+(i+1)*DELTA, BLOCKSIZE);
     clock_gettime(CLOCK_REALTIME, &time2);
     
-    printf("Checksum: %f\n", getChecksum(c0));
+    //printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
-    printf("  iter %d done\r", i); fflush(stdout);
+    //printf("  iter %d done\r", i); fflush(stdout);
     resetResult(c0);
   }
-  printf("\n");
+  //printf("\n");
 
   OPTION++;
-  printf("Doing OPTION %d...\n", OPTION);
+  //printf("Doing OPTION %d...\n", OPTION);
   for (i = 0; i < ITERS; i++) {
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
@@ -141,15 +141,15 @@ int main(int argc, char *argv[])
     bkij(a0, b0, c0, BASE+(i+1)*DELTA, BLOCKSIZE);
     clock_gettime(CLOCK_REALTIME, &time2);
     
-    printf("Checksum: %f\n", getChecksum(c0));
+    //printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
-    printf("  iter %d done\r", i); fflush(stdout);
+    //printf("  iter %d done\r", i); fflush(stdout);
     resetResult(c0);
   }
-  printf("\n");
+  //printf("\n");
 
   OPTION++;
-  printf("Doing OPTION %d...\n", OPTION);
+  //printf("Doing OPTION %d...\n", OPTION);
   for (i = 0; i < ITERS; i++) {
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
@@ -159,15 +159,15 @@ int main(int argc, char *argv[])
     mmm_kij(a0,b0,c0);
     clock_gettime(CLOCK_REALTIME, &time2);
     
-    printf("Checksum: %f\n", getChecksum(c0));
+    //printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
-    printf("  iter %d done\r", i); fflush(stdout);
+    //printf("  iter %d done\r", i); fflush(stdout);
     resetResult(c0);
   }
-  printf("\n");
+  //printf("\n");
 
   OPTION++;
-  printf("Doing OPTION %d...\n", OPTION);
+  //printf("Doing OPTION %d...\n", OPTION);
   for (i = 0; i < ITERS; i++) {
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
@@ -177,15 +177,15 @@ int main(int argc, char *argv[])
     mmm_kij_omp(a0,b0,c0);
     clock_gettime(CLOCK_REALTIME, &time2);
     
-    printf("Checksum: %f\n", getChecksum(c0));
+    //printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
-    printf("  iter %d done\r", i); fflush(stdout);
+    //printf("  iter %d done\r", i); fflush(stdout);
     resetResult(c0);
   }
-  printf("\n");
+  //printf("\n");
 
-  printf("\nAll times are in seconds\n");
-  printf("rowlen, ijk, ijk_omp, kij, kij_omp\n");
+  //printf("\nAll times are in seconds\n");
+  //printf("rowlen, ijk, ijk_omp, kij, kij_omp\n");
   for (i = 0; i < ITERS; i++) {
     printf("%4d", BASE+(i+1)*DELTA);
     for (j = 0; j < OPTIONS; j++) {
