@@ -12,10 +12,10 @@
 
 #define BASE  0
 #define ITERS 1 //originally 20
-#define DELTA 16 //originally 113
+#define DELTA 1024 //originally 113
 
-#define BLOCKSIZE 8
-#define INNERBLOCKSIZE 2
+#define BLOCKSIZE 64
+#define INNERBLOCKSIZE 32
 
 #define OPTIONS 2
 #define IDENT 0
@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
   void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
   void bbijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
   void printMat(matrix_ptr A);
+  data_t getChecksum(matrix_ptr C);
 
   long int i, j, k;
   long int time_sec, time_ns;
@@ -68,11 +69,13 @@ int main(int argc, char *argv[])
     set_matrix_length(a0,BASE+(i+1)*DELTA);
     set_matrix_length(b0,BASE+(i+1)*DELTA);
     set_matrix_length(c0,BASE+(i+1)*DELTA);
+    
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
-    //mmm_ijk(a0,b0,c0);
     bijk(a0, b0, c0, BASE+(i+1)*DELTA, BLOCKSIZE);
-    //printMat(c0);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+   
+    //printMat(c0); 
+    printf("Blocked checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
   }
   
@@ -82,10 +85,13 @@ int main(int argc, char *argv[])
     set_matrix_length(a0,BASE+(i+1)*DELTA);
     set_matrix_length(b0,BASE+(i+1)*DELTA);
     set_matrix_length(c0,BASE+(i+1)*DELTA);
+    
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     bbijk(a0,b0,c0, BASE+(i+1)*DELTA, BLOCKSIZE);
-    //printMat(c0);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+    
+    //printMat(c0);
+    printf("Register blocked checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
   }
 
@@ -205,6 +211,23 @@ struct timespec diff(struct timespec start, struct timespec end)
 
 /*************************************************/
 
+data_t getChecksum(matrix_ptr C) {
+	int i, j;
+	data_t sum;
+	long int get_matrix_length(matrix_ptr m);
+	data_t *get_matrix_start(matrix_ptr m);
+	long int length = get_matrix_length(C);
+	data_t *c0 = get_matrix_start(C);
+	
+	for (i = 0; i < length; i++) {
+		for (j = 0; j < length; j++) {
+			sum += c0[i*length+j];
+		}
+	}
+	
+	return sum;
+}
+
 void printMat(matrix_ptr A) {
 	int i, j;
 	data_t sum;
@@ -273,17 +296,18 @@ void bbijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 			c0[i*length+j] = 0.0;
 
 	// MMM loop nest (j, i, k)
-	for (i=0; i<length; i+=bsize)
-		for (j=0; j<length; j+=bsize)
-			for (k=0; k<length; k+=bsize)
+	for (k=0; k<length; k+=bsize)
+		for (i=0; i<length; i+=bsize)
+			for (j=0; j<length; j+=bsize)
 				// mini-MMM loop nest (i0, j0, k0)
-				for (i0=i; i0<(i + bsize); i0+=innerbsize)
-					for (j0=j; j0<(j + bsize); j0+=innerbsize)
-						for (k0=k; k0<(k + bsize); k0+=innerbsize)
+				for (k0=k; k0<(k + bsize); k0+=innerbsize)
+					for (i0=i; i0<(i + bsize); i0+=innerbsize)
+						for (j0=j; j0<(j + bsize); j0+=innerbsize)
 							// micro-MMM loop nest (j00, i00)
 							for (k00=k0; k00<(k0 + innerbsize); k00++)
-								for (j00=j0; j00<(j0 + innerbsize); j00++)
-									for (i00=i0; i00<(i0 + innerbsize); i00++)
+								for (i00=i0; i00<(i0 + innerbsize); i00++)
+									for (j00=j0; j00<(j0 + innerbsize); j00++)
+									
 										//printf("i: %d\t i0: %d\ti00: %d\tj: %d\t j0: %d\tj00: %d\tk: %d\t k0: %d\tk00: %d\n", i, i0, i00, j, j0, j00, k, k0, k00);
 										c0[i00*length+j00] += a0[i00*length+k00] * b0[k00*length+j00];
 
