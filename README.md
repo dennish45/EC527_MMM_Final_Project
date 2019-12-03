@@ -10,7 +10,7 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - Slideshow
 - Vectorization
 - Multithreading (OMP or PThreads)
-- More shell automation (block size, register blocks, GPU grid/block sizes)
+- More shell automation (block size, register blocks, GPU grid/block sizes, -O0 / -O1 / -O2 / -O3 compiler flags)
 - Graphs
 
 ### Future
