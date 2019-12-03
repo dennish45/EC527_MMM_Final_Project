@@ -15,10 +15,14 @@
    how much time it takes. We care about time more than about cycles. */
 
 #define BASE  0
-#define ITERS 4 //4
-#define DELTA 149 //29, 49, 69, 89, 109, 129 row len = (4 + 1) x 29, array size = 145 x 145 <= L2 cache
+#define ITERS 1 //4
+//#define DELTA 1024 //29, 49, 69, 89, 109, 129 row len = (4 + 1) x 29, array size = 145 x 145 <= L2 cache
 //           252300    720300
 // for bigger than L3 cache with 3 arrays, ITERS = 4 , DELTA = 143, 5 x 149 = 715, 715^2 <= 6144k
+
+#define BLOCKSIZE 4
+#define INNERBLOCKSIZE 4
+#define KU 4
 
 
 #define OPTIONS 4
@@ -86,6 +90,11 @@ int main(int argc, char *argv[])
   void mmm_ijk_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void mmm_kij(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void mmm_kij_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
+  void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
+  void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
+  void printMat(matrix_ptr A);
+  data_t getChecksum(matrix_ptr C);
+  void resetResult(matrix_ptr C);
 
   long int i, j, k, ognt;
   long int time_sec, time_ns;
@@ -109,11 +118,15 @@ int main(int argc, char *argv[])
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(c0,BASE+(i+1)*DELTA);
+    
     clock_gettime(CLOCK_REALTIME, &time1);
-    mmm_ijk(a0,b0,c0);
+    bkij(a0, b0, c0, BASE+(i+1)*DELTA, BLOCKSIZE);
     clock_gettime(CLOCK_REALTIME, &time2);
+    
+    printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
     printf("  iter %d done\r", i); fflush(stdout);
+    resetResult(c0);
   }
   printf("\n");
 
@@ -123,11 +136,15 @@ int main(int argc, char *argv[])
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(c0,BASE+(i+1)*DELTA);
+    
     clock_gettime(CLOCK_REALTIME, &time1);
-    mmm_ijk_omp(a0,b0,c0);
+    bkij(a0, b0, c0, BASE+(i+1)*DELTA, BLOCKSIZE);
     clock_gettime(CLOCK_REALTIME, &time2);
+    
+    printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
     printf("  iter %d done\r", i); fflush(stdout);
+    resetResult(c0);
   }
   printf("\n");
 
@@ -137,11 +154,15 @@ int main(int argc, char *argv[])
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(c0,BASE+(i+1)*DELTA);
+    
     clock_gettime(CLOCK_REALTIME, &time1);
     mmm_kij(a0,b0,c0);
     clock_gettime(CLOCK_REALTIME, &time2);
+    
+    printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
     printf("  iter %d done\r", i); fflush(stdout);
+    resetResult(c0);
   }
   printf("\n");
 
@@ -151,11 +172,15 @@ int main(int argc, char *argv[])
     set_matrix_rowlen(a0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(b0,BASE+(i+1)*DELTA);
     set_matrix_rowlen(c0,BASE+(i+1)*DELTA);
+    
     clock_gettime(CLOCK_REALTIME, &time1);
     mmm_kij_omp(a0,b0,c0);
     clock_gettime(CLOCK_REALTIME, &time2);
+    
+    printf("Checksum: %f\n", getChecksum(c0));
     time_stamp[OPTION][i] = diff(time1,time2);
     printf("  iter %d done\r", i); fflush(stdout);
+    resetResult(c0);
   }
   printf("\n");
 
@@ -261,6 +286,149 @@ struct timespec diff(struct timespec start, struct timespec end)
 }
 
 /*************************************************/
+
+data_t getChecksum(matrix_ptr C) {
+	int i, j;
+	data_t sum;
+  long int length = get_matrix_rowlen(C);
+  data_t *c0 = get_matrix_start(C);
+	
+	for (i = 0; i < length; i++) {
+		for (j = 0; j < length; j++) {
+			sum += c0[i*length+j];
+		}
+	}
+	
+	return sum;
+}
+
+void resetResult(matrix_ptr C) {
+	int i, j;
+	data_t sum;
+  long int length = get_matrix_rowlen(C);
+  data_t *c0 = get_matrix_start(C);
+	
+	for (i = 0; i < length; i++) {
+		for (j = 0; j < length; j++) {
+			c0[i*length+j] = 0.0;
+		}
+	}
+}
+
+void printMat(matrix_ptr A) {
+	int i, j;
+	data_t sum;
+	long int length = get_matrix_rowlen(A);
+	data_t *a0 = get_matrix_start(A);
+	
+	for (i = 0; i < length; i++) {
+		for (j = 0; j < length; j++) {
+			printf("%05f\t", a0[i*length+j]);
+		}
+		printf("\n");
+	}
+
+
+}
+
+//blocking matrix multiply
+void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
+
+  long int i, j, k, i0, j0, k0;
+  long int get_matrix_rowlen(matrix_ptr m);
+  data_t *get_matrix_start(matrix_ptr m);
+  long int row_length = get_matrix_rowlen(A);
+  data_t *a0 = get_matrix_start(A);
+  data_t *b0 = get_matrix_start(B);
+  data_t *c0 = get_matrix_start(C);
+  data_t r;
+  
+  for (k=0; k<row_length; k+=bsize) {
+		for (i=0; i<row_length; i+=bsize)
+			for (j=0; j<row_length; j+=bsize)
+				// inner loops
+				for (k0=k; k0<(k + bsize); k0++) {
+					for (i0=i; i0<(i + bsize); i0++) {
+						r = a0[i0*row_length+k0];
+						for (j0=j; j0<(j + bsize); j0++) {
+							c0[i0*row_length+j0] += r * b0[k0*row_length+j0];
+						}
+					}
+				}
+	}
+
+	/*
+  for (k = 0; k < row_length; k++) {
+    for (i = 0; i < row_length; i++) {
+      r = a0[i*row_length+k];
+      for (j = 0; j < row_length; j++)
+        c0[i*row_length+j] += r*b0[k*row_length+j];
+    }
+  }*/
+	/*int i, j, k, i0, j0, k0;
+	data_t sum, r;
+  long int length = get_matrix_rowlen(A);
+  data_t *a0 = get_matrix_start(A);
+  data_t *b0 = get_matrix_start(B);
+  data_t *c0 = get_matrix_start(C);
+	int en = bsize * (n/bsize); // Amount that fits evenly into blocks
+
+	for (k=0; k<length; k+=bsize) {
+		for (i=0; i<length; i+=bsize)
+			for (j=0; j<length; j+=bsize)
+				// inner loops
+				for (k0=k; k0<(k + bsize); k0++) {
+					for (i0=i; i0<(i + bsize); i0++) {
+						r = a0[i0*length+k0];
+						for (j0=j; j0<(j + bsize); j0++) {
+							c0[i0*length+j0] += r * b0[k0*length+j0];
+						}
+					}
+				}
+	}
+	
+  for (k = 0; k < length; k++) {
+    for (i = 0; i < length; i++) {
+      r = a0[i*length+k];
+      for (j = 0; j < length; j++)
+        c0[i*length+j] += r*b0[k*length+j];
+    }
+  }*/
+							
+							
+	
+}
+
+//register blocking matrix multiply
+void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
+	int i, j, k, i0, j0, k0, i00, j00, k00;
+  long int length = get_matrix_rowlen(A);
+  data_t *a0 = get_matrix_start(A);
+  data_t *b0 = get_matrix_start(B);
+  data_t *c0 = get_matrix_start(C);
+  data_t sum, r;
+	int en = bsize * (n/bsize); // Amount that fits evenly into blocks
+	int innerbsize = INNERBLOCKSIZE;
+
+	// MMM loop nest (j, i, k)
+	for (k=0; k<length; k+=bsize)
+		for (i=0; i<length; i+=bsize)
+			for (j=0; j<length; j+=bsize)
+				// mini-MMM loop nest (i0, j0, k0)
+				for (k0=k; k0<(k + bsize); k0+=KU)
+					for (i0=i; i0<(i + bsize); i0+=innerbsize)
+						for (j0=j; j0<(j + bsize); j0+=innerbsize)
+							// micro-MMM loop nest (j00, i00)
+							for (k00=k0; k00<(k0 + KU); k00++)
+								for (i00=i0; i00<(i0 + innerbsize); i00++) {
+									r = a0[i00*length+k00];
+									for (j00=j0; j00<(j0 + innerbsize); j00++)
+									
+										//printf("i: %d\t i0: %d\ti00: %d\tj: %d\t j0: %d\tj00: %d\tk: %d\t k0: %d\tk00: %d\n", i, i0, i00, j, j0, j00, k, k0, k00);
+										c0[i00*length+j00] += r * b0[k00*length+j00];
+								}
+
+}
 
 /* MMM ijk */
 void mmm_ijk(matrix_ptr a, matrix_ptr b, matrix_ptr c)

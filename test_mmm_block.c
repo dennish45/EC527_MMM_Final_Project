@@ -6,16 +6,18 @@
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
+#include <omp.h>
 
 #define GIG 1000000000
 #define CPG 3.3           // Cycles per GHz -- Adjust to your computer
 
 #define BASE  0
-#define ITERS 1 //originally 20
-#define DELTA 1024 //originally 113
+#define ITERS 1
+#define DELTA 128
 
 #define BLOCKSIZE 64
 #define INNERBLOCKSIZE 32
+#define KU 32
 
 #define OPTIONS 2
 #define IDENT 0
@@ -248,7 +250,7 @@ void printMat(matrix_ptr A) {
 
 //blocking matrix multiply
 void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
-	int i, j, k, kk, jj;
+	int i, j, k, i0, j0, k0;
 	data_t sum;
 	long int get_matrix_length(matrix_ptr m);
 	data_t *get_matrix_start(matrix_ptr m);
@@ -262,6 +264,7 @@ void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 		for (j = 0; j < n; j++)
 			c0[i*length+j] = 0.0;
 
+	/*
 	for (kk = 0; kk < en; kk += bsize) {
 		for (jj = 0; jj < en; jj += bsize) {
 			for (i = 0; i < n; i++) {
@@ -276,6 +279,17 @@ void bijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 			}
 		}
 	}
+	*/
+	for (k=0; k<length; k+=bsize)
+		for (i=0; i<length; i+=bsize)
+			for (j=0; j<length; j+=bsize)
+				// inner loops
+				for (k0=k; k0<(k + bsize); k0++)
+					for (i0=i; i0<(i + bsize); i0++)
+						for (j0=j; j0<(j + bsize); j0++)
+							c0[i0*length+j0] += a0[i0*length+k0] * b0[k0*length+j0];
+							
+	
 }
 
 //register blocking matrix multiply
@@ -300,11 +314,11 @@ void bbijk(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize) {
 		for (i=0; i<length; i+=bsize)
 			for (j=0; j<length; j+=bsize)
 				// mini-MMM loop nest (i0, j0, k0)
-				for (k0=k; k0<(k + bsize); k0+=innerbsize)
+				for (k0=k; k0<(k + bsize); k0+=KU)
 					for (i0=i; i0<(i + bsize); i0+=innerbsize)
 						for (j0=j; j0<(j + bsize); j0+=innerbsize)
 							// micro-MMM loop nest (j00, i00)
-							for (k00=k0; k00<(k0 + innerbsize); k00++)
+							for (k00=k0; k00<(k0 + KU); k00++)
 								for (i00=i0; i00<(i0 + innerbsize); i00++)
 									for (j00=j0; j00<(j0 + innerbsize); j00++)
 									
