@@ -1,12 +1,12 @@
 #/bin/bash
 
 prgList=(
-	#"mmm_ijk"
-	#"mmm_ijk_omp"
+	"mmm_ijk"
+	"mmm_ijk_omp"
 	"mmm_bbkij"
-	#"mmm_bkij"
-	#"mmm_kij"
-	#"mmm_kij_omp"
+	"mmm_bkij"
+	"mmm_kij"
+	"mmm_kij_omp"
 )
 
 for prg in "${prgList[@]}"
@@ -23,7 +23,7 @@ do
 		do
 			
 			# compile and run
-			gcc -O"$((opt))" -fopenmp $prg.c -lrt -o $prg.out -DARRSIZE="$((2**i))"
+			gcc -O"$((opt))" -mavx -fopenmp $prg.c -lrt -o $prg.out -DARRSIZE="$((2**i))"
 			printval=`OMP_NUM_THREADS=16 ./$prg.out`
 			echo -en "$printval"
 			

@@ -90,8 +90,8 @@ int main(int argc, char *argv[])
   void mmm_ijk_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void mmm_kij(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void mmm_kij_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
-  void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
-  void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
+  void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C);
+  void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C);
   void printMat(matrix_ptr A);
   data_t getChecksum(matrix_ptr C);
   void resetResult(matrix_ptr C);
@@ -265,8 +265,8 @@ void printMat(matrix_ptr A) {
 
 }
 
-/* MMM kij */
-void mmm_kij(matrix_ptr a, matrix_ptr b, matrix_ptr c)
+/* MMM kij w/ OMP */
+void mmm_kij_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c)
 {
   long int i, j, k;
   long int get_matrix_rowlen(matrix_ptr m);
@@ -276,13 +276,17 @@ void mmm_kij(matrix_ptr a, matrix_ptr b, matrix_ptr c)
   data_t *b0 = get_matrix_start(b);
   data_t *c0 = get_matrix_start(c);
   data_t r;
-
-  for (k = 0; k < row_length; k++) {
-    for (i = 0; i < row_length; i++) {
-      r = a0[i*row_length+k];
-      for (j = 0; j < row_length; j++)
-        c0[i*row_length+j] += r*b0[k*row_length+j];
+#pragma omp parallel shared(a0,b0,c0,row_length) private(i,j,k,r)
+//#pragma omp parallel shared(a0,b0,c0,row_length, i,j,k) private(r)
+  {
+#pragma omp for
+    for (k = 0; k < row_length; k++) {
+      for (i = 0; i < row_length; i++) {
+        r = a0[i*row_length+k];
+//	#pragma omp for
+        for (j = 0; j < row_length; j++)
+          c0[i*row_length+j] += r*b0[k*row_length+j];
+      }
     }
   }
 }
-

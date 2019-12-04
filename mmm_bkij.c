@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
   void mmm_kij(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void mmm_kij_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C);
-  void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
+  void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C);
   void printMat(matrix_ptr A);
   data_t getChecksum(matrix_ptr C);
   void resetResult(matrix_ptr C);
