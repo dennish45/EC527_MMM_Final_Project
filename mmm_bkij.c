@@ -20,9 +20,9 @@
 //           252300    720300
 // for bigger than L3 cache with 3 arrays, ITERS = 4 , ARRSIZE = 143, 5 x 149 = 715, 715^2 <= 6144k
 
-#define BLOCKSIZE 4
-#define INNERBLOCKSIZE 4
-#define KU 4
+#define BLOCKSIZE ARRSIZE/4
+#define INNERBLOCKSIZE BLOCKSIZE/2
+#define KU INNERBLOCKSIZE
 
 
 #define OPTIONS 4
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
   void mmm_ijk_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void mmm_kij(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void mmm_kij_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
-  void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
+  void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C);
   void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C, int n, int bsize);
   void printMat(matrix_ptr A);
   data_t getChecksum(matrix_ptr C);
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 	set_matrix_rowlen(c0,ARRSIZE);
 
 	clock_gettime(CLOCK_REALTIME, &time1);
-	mmm_kij(a0, b0, c0);
+	bkij(a0, b0, c0);
 	clock_gettime(CLOCK_REALTIME, &time2);
 
 	//printf("Checksum: %f\n", getChecksum(c0));
@@ -265,23 +265,29 @@ void printMat(matrix_ptr A) {
 
 }
 
-/* MMM kij */
-void mmm_kij(matrix_ptr a, matrix_ptr b, matrix_ptr c)
-{
-  long int i, j, k;
+//blocking matrix multiply
+void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C) {
+
+  long int i, j, k, i0, j0, k0;
   long int get_matrix_rowlen(matrix_ptr m);
   data_t *get_matrix_start(matrix_ptr m);
-  long int row_length = get_matrix_rowlen(a);
-  data_t *a0 = get_matrix_start(a);
-  data_t *b0 = get_matrix_start(b);
-  data_t *c0 = get_matrix_start(c);
+  long int row_length = get_matrix_rowlen(A);
+  data_t *a0 = get_matrix_start(A);
+  data_t *b0 = get_matrix_start(B);
+  data_t *c0 = get_matrix_start(C);
   data_t r;
-
-  for (k = 0; k < row_length; k++) {
-    for (i = 0; i < row_length; i++) {
-      r = a0[i*row_length+k];
-      for (j = 0; j < row_length; j++)
-        c0[i*row_length+j] += r*b0[k*row_length+j];
-    }
-  }
+  int bsize = BLOCKSIZE;
+  
+  for (k=0; k<row_length; k+=bsize) {
+		for (i=0; i<row_length; i+=bsize)
+			for (j=0; j<row_length; j+=bsize)
+				// inner loops
+				for (k0=k; k0<(k + bsize); k0++) {
+					for (i0=i; i0<(i + bsize); i0++) {
+						for (j0=j; j0<(j + bsize); j0++) {
+							c0[i0*row_length+j0] += a0[i0*row_length+k0] * b0[k0*row_length+j0];
+						}
+					}
+				}
+	}
 }
