@@ -121,7 +121,8 @@ int main(int argc, char *argv[])
 	mmm_kij_omp(a0, b0, c0);
 	clock_gettime(CLOCK_REALTIME, &time2);
 
-	//printf("Checksum: %f\n", getChecksum(c0));
+//	printMat(c0);
+	printf("Checksum: %f\n", getChecksum(c0));
 	long int timeElapsedNs = time2.tv_nsec - time1.tv_nsec;
 	int timeElapsed = time2.tv_sec - time1.tv_sec;
 	resetResult(c0);
@@ -276,14 +277,14 @@ void mmm_kij_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c)
   data_t *b0 = get_matrix_start(b);
   data_t *c0 = get_matrix_start(c);
   data_t r;
-#pragma omp parallel shared(a0,b0,c0,row_length) private(i,j,k,r)
+//#pragma omp parallel shared(a0,b0,c0,row_length) private(i,j,k,r)
 //#pragma omp parallel shared(a0,b0,c0,row_length, i,j,k) private(r)
   {
-#pragma omp for
+//#pragma omp for
     for (k = 0; k < row_length; k++) {
+      #pragma omp parallel for private(i, j, r) shared(a0, b0, c0, row_length)
       for (i = 0; i < row_length; i++) {
         r = a0[i*row_length+k];
-//	#pragma omp for
         for (j = 0; j < row_length; j++)
           c0[i*row_length+j] += r*b0[k*row_length+j];
       }

@@ -7,6 +7,9 @@
 #include <time.h>
 #include <math.h>
 #include <omp.h>
+#include <xmmintrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
 
 #define GIG 1.0e9
 /* We do *not* use CPG (cycles per gigahertz) because when multiple
@@ -16,7 +19,7 @@
 
 #define BASE  0
 #define ITERS 1 //4
-//#define ARRSIZE 1024 //29, 49, 69, 89, 109, 129 row len = (4 + 1) x 29, array size = 145 x 145 <= L2 cache
+//#define ARRSIZE 8 //29, 49, 69, 89, 109, 129 row len = (4 + 1) x 29, array size = 145 x 145 <= L2 cache
 //           252300    720300
 // for bigger than L3 cache with 3 arrays, ITERS = 4 , ARRSIZE = 143, 5 x 149 = 715, 715^2 <= 6144k
 
@@ -92,6 +95,7 @@ int main(int argc, char *argv[])
   void mmm_kij_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void bkij(matrix_ptr A, matrix_ptr B, matrix_ptr C);
   void bbkij(matrix_ptr A, matrix_ptr B, matrix_ptr C);
+  void mmm_vect(matrix_ptr a, matrix_ptr b, matrix_ptr c);
   void printMat(matrix_ptr A);
   data_t getChecksum(matrix_ptr C);
   void resetResult(matrix_ptr C);
@@ -118,9 +122,10 @@ int main(int argc, char *argv[])
 	set_matrix_rowlen(c0,ARRSIZE);
 
 	clock_gettime(CLOCK_REALTIME, &time1);
-	mmm_ijk_omp(a0, b0, c0);
+	mmm_vect(a0, b0, c0);
 	clock_gettime(CLOCK_REALTIME, &time2);
 
+	//printMat(c0);
 	printf("Checksum: %f\n", getChecksum(c0));
 	long int timeElapsedNs = time2.tv_nsec - time1.tv_nsec;
 	int timeElapsed = time2.tv_sec - time1.tv_sec;
@@ -265,7 +270,7 @@ void printMat(matrix_ptr A) {
 
 }
 
-/* MMM ijk w/ OMP */
+/* MMM ijk w/ OMP 
 void mmm_ijk_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c)
 {
   long int i, j, k;
@@ -291,3 +296,73 @@ void mmm_ijk_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c)
   }
 }
 
+*/
+
+// from http://richardstartin.uk/mmm-revisited/
+// currently segfaults if matrix size > 128
+// accurate for sizes 64 and 128 only, apparently -- I'm guessing it would be good for larger sizes if not for the segfaults too
+void mmm_vect(matrix_ptr a, matrix_ptr b, matrix_ptr c)
+{
+    //printf("start\n");
+    long int i, j, k, ii, jj, kk;
+    const long int n = get_matrix_rowlen(c);
+    float *left = get_matrix_start(a);
+    float *right = get_matrix_start(b);
+    float *result = get_matrix_start(c);
+
+    int column_offset, row_offset;
+    const int block_width = n >= 256 ? 512 : 256;
+    const int block_height = n >= 512 ? 8 : n >= 256 ? 16 : 32;
+
+    //printf("made it here\n");
+
+    //printf("n: %d\n", n);
+    //printf("block_width: %d\n", block_width);
+    //printf("block_height: %d\n", block_height);
+
+    for (column_offset = 0; column_offset < n; column_offset += block_width) {
+        for (row_offset = 0; row_offset < n; row_offset += block_height) {
+            //printf("(%d, %d)\n", row_offset, column_offset);
+            for (i = 0; i < n; ++i) {
+                for (j = column_offset; j < column_offset + block_width && j < n; j += 64) {
+                    //printf("i=%d j=%d\n", i, j);
+                    //printf("%d\n", i*n+j);
+                    __m256 sum1 = _mm256_loadu_ps(result + i * n + j);
+                    //printf("2\n");
+                    __m256 sum2 = _mm256_loadu_ps(result + i * n + j + 8);
+                    //printf("3\n");
+                    __m256 sum3 = _mm256_loadu_ps(result + i * n + j + 16);
+                    //printf("4\n");
+                    __m256 sum4 = _mm256_loadu_ps(result + i * n + j + 24);
+                    //printf("5\n");
+                    __m256 sum5 = _mm256_loadu_ps(result + i * n + j + 32);
+                    __m256 sum6 = _mm256_loadu_ps(result + i * n + j + 40);
+                    __m256 sum7 = _mm256_loadu_ps(result + i * n + j + 48);
+                    __m256 sum8 = _mm256_loadu_ps(result + i * n + j + 56);
+                    for (k = row_offset; k < row_offset + block_height && k < n; ++k) {
+                        __m256 multiplier = _mm256_set1_ps(left[i * n + k]);
+                        sum1 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j), sum1);
+                        sum2 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 8), sum2);
+                        sum3 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 16), sum3);
+                        sum4 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 24), sum4);
+                        sum5 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 32), sum5);
+                        sum6 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 40), sum6);
+                        sum7 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 48), sum7);
+                        sum8 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 56), sum8);
+                    }
+                    _mm256_storeu_ps(result + i * n + j, sum1);
+                    _mm256_storeu_ps(result + i * n + j + 8, sum2);
+                    _mm256_storeu_ps(result + i * n + j + 16, sum3);
+                    _mm256_storeu_ps(result + i * n + j + 24, sum4);
+                    _mm256_storeu_ps(result + i * n + j + 32, sum5);
+                    _mm256_storeu_ps(result + i * n + j + 40, sum6);
+                    _mm256_storeu_ps(result + i * n + j + 48, sum7);
+                    _mm256_storeu_ps(result + i * n + j + 56, sum8);
+                }
+            }
+
+            //printf("(%d, %d)\n", row_offset, column_offset);
+        }
+    }
+
+}
