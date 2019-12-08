@@ -30,3 +30,5 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 I found this: https://github.com/richardstartin/cppavxbenchmarks/blob/master/mmul.cpp
 
 We may be able to adapt it to work with C instead of C++. I tried putting it directly into the code we already have but I'm getting segfaults and I don't know why, so I'm thinking about starting from the ground up with this as a basis. The C++ version compiles and runs lighting fast, so I'd love to get it working in our code.
+
+Original blog post: http://richardstartin.uk/mmm-revisited/
