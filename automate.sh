@@ -5,7 +5,7 @@ prgList=(
 	"mmm_ijk_omp"
 	"mmm_bbkij"
 	"mmm_bkij"
-	"mmm_vect"
+	"mmm_kij"
 	"mmm_vect"
 	"mmm_kij_omp"
 	"mmm_vect_omp"
