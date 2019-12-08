@@ -343,14 +343,14 @@ void mmm_vect(matrix_ptr a, matrix_ptr b, matrix_ptr c)
                     __m256 sum8 = _mm256_loadu_ps(result + i * n + j + 56);
                     for (k = row_offset; k < row_offset + block_height && k < n; ++k) {
                         __m256 multiplier = _mm256_set1_ps(left[i * n + k]);
-                        sum1 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j), sum1);
-                        sum2 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 8), sum2);
-                        sum3 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 16), sum3);
-                        sum4 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 24), sum4);
-                        sum5 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 32), sum5);
-                        sum6 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 40), sum6);
-                        sum7 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 48), sum7);
-                        sum8 = _mm256_fmadd_ps(multiplier, _mm256_load_ps(right + k * n + j + 56), sum8);
+                        sum1 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j), sum1);
+                        sum2 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j + 8), sum2);
+                        sum3 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j + 16), sum3);
+                        sum4 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j + 24), sum4);
+                        sum5 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j + 32), sum5);
+                        sum6 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j + 40), sum6);
+                        sum7 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j + 48), sum7);
+                        sum8 = _mm256_fmadd_ps(multiplier, _mm256_loadu_ps(right + k * n + j + 56), sum8);
                     }
                     _mm256_storeu_ps(result + i * n + j, sum1);
                     _mm256_storeu_ps(result + i * n + j + 8, sum2);
