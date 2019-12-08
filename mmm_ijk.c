@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	mmm_ijk(a0, b0, c0);
 	clock_gettime(CLOCK_REALTIME, &time2);
 
-	printf("Checksum: %f\n", getChecksum(c0));
+	fprintf(stderr, "Checksum: %f\n", getChecksum(c0));
 	long int timeElapsedNs = time2.tv_nsec - time1.tv_nsec;
 	int timeElapsed = time2.tv_sec - time1.tv_sec;
 	resetResult(c0);

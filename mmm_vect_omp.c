@@ -1,5 +1,5 @@
 /************************************************************************/
-// gcc -O1 -fopenmp test_mmm_inter_omp.c -lrt -o test_mmm_inter_omp
+// gcc -O3 -lm -fopenmp -mavx2 -mfma -march=native -funroll-loops mmm_vect_omp.c -lrt -o mmm_vect_omp.out -DARRSIZE=1024
 // OMP_NUM_THREADS=4 ./test_mmm_inter_omp
 
 #include <stdio.h>
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 	clock_gettime(CLOCK_REALTIME, &time2);
 
 	//printMat(c0);
-	printf("Checksum: %f\n", getChecksum(c0));
+	fprintf(stderr, "\nChecksum: %f; ", getChecksum(c0));
 	long int timeElapsedNs = time2.tv_nsec - time1.tv_nsec;
 	int timeElapsed = time2.tv_sec - time1.tv_sec;
 	resetResult(c0);
@@ -299,8 +299,6 @@ void mmm_ijk_omp(matrix_ptr a, matrix_ptr b, matrix_ptr c)
 */
 
 // from http://richardstartin.uk/mmm-revisited/
-// currently segfaults if matrix size > 128
-// accurate for sizes 64 and 128 only, apparently -- I'm guessing it would be good for larger sizes if not for the segfaults too
 void mmm_vect(matrix_ptr a, matrix_ptr b, matrix_ptr c)
 {
     //printf("start\n");
@@ -321,22 +319,20 @@ void mmm_vect(matrix_ptr a, matrix_ptr b, matrix_ptr c)
     //printf("block_height: %d\n", block_height);
 
     for (column_offset = 0; column_offset < n; column_offset += block_width) {
+        //#pragma omp parallel for private(row_offset, i, j, k)
         for (row_offset = 0; row_offset < n; row_offset += block_height) {
-
             //printf("(%d, %d)\n", row_offset, column_offset);
             #pragma omp parallel for private(i, j, k)
             for (i = 0; i < n; ++i) {
-                for (j = column_offset; j < column_offset + block_width && j < n; j += 64) {
+                int maxbound = (column_offset+block_width) < n ? (column_offset+block_width) : n;
+                //#pragma omp parallel for private(j, k)
+                for (j = column_offset; j < maxbound/*column_offset + block_width && j < n*/; j += 64) {
                     //printf("i=%d j=%d\n", i, j);
                     //printf("%d\n", i*n+j);
                     __m256 sum1 = _mm256_loadu_ps(result + i * n + j);
-                    //printf("2\n");
                     __m256 sum2 = _mm256_loadu_ps(result + i * n + j + 8);
-                    //printf("3\n");
                     __m256 sum3 = _mm256_loadu_ps(result + i * n + j + 16);
-                    //printf("4\n");
                     __m256 sum4 = _mm256_loadu_ps(result + i * n + j + 24);
-                    //printf("5\n");
                     __m256 sum5 = _mm256_loadu_ps(result + i * n + j + 32);
                     __m256 sum6 = _mm256_loadu_ps(result + i * n + j + 40);
                     __m256 sum7 = _mm256_loadu_ps(result + i * n + j + 48);

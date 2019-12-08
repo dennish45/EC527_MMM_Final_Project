@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 	clock_gettime(CLOCK_REALTIME, &time2);
 
 //	printMat(c0);
-	printf("Checksum: %f\n", getChecksum(c0));
+	fprintf(stderr, "\nChecksum: %f; ", getChecksum(c0));
 	long int timeElapsedNs = time2.tv_nsec - time1.tv_nsec;
 	int timeElapsed = time2.tv_sec - time1.tv_sec;
 	resetResult(c0);
