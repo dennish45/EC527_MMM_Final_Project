@@ -5,10 +5,11 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - Basic shell script
 - Base serial code
 - Base GPU code
-
-### To do
 - Slideshow
 - Vectorization
+- AVX (256)
+
+### To do
 - Multithreading (OMP or PThreads)
 - More shell automation (block size, register blocks, GPU grid/block sizes, -O0 / -O1 / -O2 / -O3 compiler flags)
 - Graphs
@@ -19,7 +20,7 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - Testing different loop orders (ijk vs kij vs jki)
 - Test performance with large matrices (>1024x1024)
 - Loop unrolling and multiple accumulators
-- AVX (256 and 512-bit registers)
+- AVX (512-bit registers)
 - using icc compiler for optimization
 
 ### Extra
