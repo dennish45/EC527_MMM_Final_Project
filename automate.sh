@@ -11,8 +11,10 @@ prgList=(
 	"mmm_vect_omp"
 )
 
-for prg in "${prgList[@]}"
+for prgName in "${prgList[@]}"
 do
+
+	prg="cpu-opt/$prgName"
 	echo -e "\n$prg"
 	echo -e "optimization level, 64, 128, 256, 512, 1024, 2048"
 	for opt in {0..3}
