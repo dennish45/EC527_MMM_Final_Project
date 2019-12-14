@@ -12,7 +12,6 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 
 ### To do
 - More shell automation (block size, register blocks, GPU grid/block sizes - 16 threads^2 per block)
-- Don't use powers of 2 for matrix sizes, will be very poorly optimized in comparison to non powers of 2.
 - Loop unrolling and multiple accumulators
 - PThreads
 
