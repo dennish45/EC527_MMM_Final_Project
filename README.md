@@ -15,12 +15,12 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - Loop unrolling and multiple accumulators
 - PThreads
 
-### Future
+### Future (after Tuesday)
 - Paper/analysis
-- AVX (512-bit registers)
-- using icc compiler for optimization
 
 ### Extra
+- AVX (512-bit registers)
+- using icc compiler for optimization
 - Other MMM algorithms (Canon's algorithm, etc.)
 - Trying ATLAS
 - Compare professional MMM libraries (CPU vs GPU)
