@@ -9,6 +9,8 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - Vectorization
 - AVX (256)
 - OMP
+- Compare professional MMM libraries (cuBLAS)
+
 
 ### To do
 - More shell automation (block size, register blocks, GPU grid/block sizes - 16 threads^2 per block)
@@ -23,7 +25,6 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - using icc compiler for optimization
 - Other MMM algorithms (Canon's algorithm, etc.)
 - Trying ATLAS
-- Compare professional MMM libraries (CPU vs GPU)
 
 
 ## Roofline plot ideas:
