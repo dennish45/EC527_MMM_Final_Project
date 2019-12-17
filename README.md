@@ -8,22 +8,19 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - Slideshow
 - Vectorization
 - AVX (256)
+- OMP
 
 ### To do
-- Multithreading (OMP or PThreads)
-- More shell automation (block size, register blocks, GPU grid/block sizes, -O0 / -O1 / -O2 / -O3 compiler flags)
-- Graphs
-- Don't use powers of 2 for matrix sizes, will be very poorly optimized in comparison to non powers of 2.
-
-### Future
-- Paper/analysis
-- Testing different loop orders (ijk vs kij vs jki)
-- Test performance with large matrices (>1024x1024)
+- More shell automation (block size, register blocks, GPU grid/block sizes - 16 threads^2 per block)
 - Loop unrolling and multiple accumulators
-- AVX (512-bit registers)
-- using icc compiler for optimization
+- PThreads
+
+### Future (after Tuesday)
+- Paper/analysis
 
 ### Extra
+- AVX (512-bit registers)
+- using icc compiler for optimization
 - Other MMM algorithms (Canon's algorithm, etc.)
 - Trying ATLAS
 - Compare professional MMM libraries (CPU vs GPU)
