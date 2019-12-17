@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <math.h>
 #include "cuPrintf.cu"
+#include <cublas_v2.h>
 
 // Assertion to check for errors
 #define CUDA_SAFE_CALL(ans) { gpuAssert((ans), (char *)__FILE__, __LINE__); }
