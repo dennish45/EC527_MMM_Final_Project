@@ -26,9 +26,10 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - Compare professional MMM libraries (CPU vs GPU)
 
 
-## Idea for vector code
-I found this: https://github.com/richardstartin/cppavxbenchmarks/blob/master/mmul.cpp
+## Roofline plot ideas:
 
-We may be able to adapt it to work with C instead of C++. I tried putting it directly into the code we already have but I'm getting segfaults and I don't know why, so I'm thinking about starting from the ground up with this as a basis. The C++ version compiles and runs lighting fast, so I'd love to get it working in our code.
+I found this roofline plot for the Tesla K-40:
+https://www.researchgate.net/figure/Roofline-model-analysis-for-Two-Phase-RP-kernel-on-NVIDIA-Tesla-K40-GPU_fig1_313453394
 
-Original blog post: http://richardstartin.uk/mmm-revisited/
+Maybe we calculate the AI of our various programs and plot points on a roofline plot from the internet, like this one?
+
