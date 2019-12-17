@@ -31,14 +31,48 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
 }
 
 //#define NUM_THREADS_PER_BLOCK   256
-#define NUM_BLOCKS         64
+
+#ifndef NUM_BLOCKS
+#define NUM_BLOCKS         16
+#endif
+
 #define PRINT_TIME         1
 #define SM_ARR_LEN        50000
 #define TOL            1e-6
-#define ARR_SIZE 1024
+
+#ifndef ARR_SIZE
+#define ARR_SIZE 192
+#endif
 //#define ITERS 2000
 
 #define IMUL(a, b) __mul24(a, b)
+
+float getChecksum(float* C, int length) {
+	int i, j;
+	float sum = 0;	
+
+        for (i = 0; i < length; i++) {
+                for (j = 0; j < length; j++) {
+                        sum += C[i*length+j];
+                }
+        }
+
+        return sum;
+}
+
+void printMat(float* A, int length) {
+        int i, j;
+        //data_t sum;
+        //long int length = get_matrix_rowlen(A);
+        //data_t *a0 = get_matrix_start(A);
+
+        for (i = 0; i < length; i++) {
+                for (j = 0; j < length; j++) {
+                        fprintf(stderr, "%05f\t", A[i*length+j]);
+                }
+                fprintf(stderr, "\n");
+        }
+}
 
 // Matrix multiplication on the (CPU)
 //   host in double precision
@@ -61,6 +95,7 @@ void MatrixMulOnHostBlocked(float* A, float* B, float* C, int Width) {
   float sum;
   int bsize = 8;
   int en = bsize * (Width/bsize); // Amount that fits evenly into blocks
+  
 
   for (kk = 0; kk < en; kk += bsize) {
     for (jj = 0; jj < en; jj += bsize) {
@@ -78,11 +113,13 @@ void MatrixMulOnHostBlocked(float* A, float* B, float* C, int Width) {
 }
 
 
-void initializeArray2D(float *arr, int len, int seed);
+void initializeArrayRand2D(float *arr, int len, int seed);
+void initializeArrayOrdered2D(float *arr, int len);
+
 
 // Matrix multiplication kernel
 //   per thread code
-__global__ void MatrixMulKernel(float* Md ,   float* Nd , float* Pd, int Width) {
+__global__ void MatrixMulKernelGlobal(float* Md ,   float* Nd , float* Pd, int Width) {
   //   Pvalueis used to store the element of the
   // matrix that is computed by the thread
   //cuPrintf("%f\n", Md[threadIdx.y*Width+threadIdx.x]);
@@ -103,20 +140,42 @@ __global__ void MatrixMulKernel(float* Md ,   float* Nd , float* Pd, int Width) 
   Pd[Row*Width+Col] = Pvalue;
 }
 
-  /*
-  for(i = tid; i < ARR_SIZE; i += threadN) {
+__global__ void MatrixMulKernelShared(float* Md, float* Nd, float* Pd, int Width) {
+  
+  const int tile_width = ARR_SIZE/NUM_BLOCKS;
 
-    result[i] = (1e-6 * x[i] ) + (1e-7 * y[i]) + 0.25;
-    cuPrintf("Hello world!\n");
-    
-  }*/
+  __shared__ float Mds[tile_width][tile_width];  // Shared memory
+  __shared__ float Nds[tile_width][tile_width];  //   declarations
 
+  int bx = blockIdx.x;  int by = blockIdx.y;    // ID thread
+  int tx = threadIdx.x; int ty = threadIdx.y;
+
+	// Identify the row and column of the Pd element to work on
+	int Row = by * tile_width + ty;
+	int Col = bx * tile_width + tx;
+	float Pvalue = 0; // REGISTER!
+
+	// Loop over the Md and Nd tiles required to compute the Pd element
+	for (int m = 0; m < Width/tile_width; ++m) {
+		// Collaborative loading of Md and Nd tiles into shared memory
+		Mds[ty][tx] = Md[Row*Width + (m*tile_width + tx)];
+		Nds[ty][tx] = Nd[Col + (m*tile_width + ty)*Width];
+		
+		__syncthreads();
+		
+		for (int k = 0; k < tile_width; ++k)
+			Pvalue += Mds[ty][k] * Nds[k][tx];
+		
+		__syncthreads();
+	}
+	Pd[Row*Width+Col] = Pvalue;
+}
 
 int main(int argc, char **argv){
 
   // GPU Timing variables
-  cudaEvent_t startOuter, startInner, startSerial, stopOuter, stopInner, stopSerial;
-  float elapsed_gpu_outer, elapsed_gpu_inner, elapsed_serial;
+  cudaEvent_t startOuter, startInner, /*startSerial,*/ stopOuter, stopInner/*, stopSerial*/;
+  float elapsed_gpu_outer, elapsed_gpu_inner/*, elapsed_serial*/;
 
   // Arrays on GPU global memoryc
   float *d_x;
@@ -127,9 +186,9 @@ int main(int argc, char **argv){
   float *h_x;
   float *h_y;
   float *h_result;
-  float *h_serial;
+  //float *h_serial;
 
-  int i, j, errCount = 0, zeroCount = 0;
+  //int i, j, errCount = 0, zeroCount = 0;
 
   /*
   if (argc > 1) {
@@ -139,7 +198,7 @@ int main(int argc, char **argv){
     ARR_SIZE = SM_ARR_LEN;
   }*/
 
-  printf("Length of the array = %d\n", ARR_SIZE);
+  fprintf(stderr, "Length of the array = %d\n", ARR_SIZE);
 
     // Select GPU
     CUDA_SAFE_CALL(cudaSetDevice(0));
@@ -154,19 +213,19 @@ int main(int argc, char **argv){
   h_x                        = (float *) malloc(allocSize);
   h_y                        = (float *) malloc(allocSize);
   h_result                   = (float *) malloc(allocSize);
-  h_serial              = (float *) malloc(allocSize);
+  //h_serial              = (float *) malloc(allocSize);
 
   // Initialize the host arrays
-  printf("\nInitializing the arrays ...");
+  fprintf(stderr, "\nInitializing the arrays ...");
   // Arrays are initialized with a known seed for reproducability
-  initializeArray2D(h_x, ARR_SIZE, 2453);
-  initializeArray2D(h_y, ARR_SIZE, 1234);
+  initializeArrayOrdered2D(h_x, ARR_SIZE);
+  initializeArrayOrdered2D(h_y, ARR_SIZE);
   
 
   //initializeArray1D(h_y, ARR_SIZE, 1467);
-  printf("\t... done\n");
+  fprintf(stderr, "\t... done\n");
 
-  printf("Creating cuda events ...");
+  fprintf(stderr, "Creating cuda events ...");
 
 #if PRINT_TIME
   // Create the cuda events
@@ -178,9 +237,9 @@ int main(int argc, char **argv){
   cudaEventRecord(startOuter, 0);
 #endif
 
-  printf("\t... done\n");
+  fprintf(stderr, "\t... done\n");
 
-  printf("Transferring arrays to GPU memory ...");
+  fprintf(stderr, "Transferring arrays to GPU memory ...");
 
   // Transfer the arrays to the GPU memory
   CUDA_SAFE_CALL(cudaMemcpy(d_x, h_x, allocSize, cudaMemcpyHostToDevice));
@@ -189,20 +248,20 @@ int main(int argc, char **argv){
   dim3 dimGrid(NUM_BLOCKS, NUM_BLOCKS);
   dim3 dimBlock(ARR_SIZE/NUM_BLOCKS, ARR_SIZE/NUM_BLOCKS);
 
-  printf("\t... done\n");
+  fprintf(stderr, "\t... done\n");
 
 //  printf("Launching kernel");
 
   // Launch the kernel
   cudaPrintfInit();
 
-  printf("Kernel initialized\n");
+  fprintf(stderr, "Kernel initialized\n");
 
 #if PRINT_TIME
   cudaEventRecord(startInner, 0);
 #endif
 
-  MatrixMulKernel<<<dimGrid, dimBlock>>>(d_x, d_y, d_result, ARR_SIZE);
+  MatrixMulKernelGlobal<<<dimGrid, dimBlock>>>(d_x, d_y, d_result, ARR_SIZE);
   cudaPrintfDisplay(stdout, true);
   cudaPrintfEnd();
 
@@ -221,29 +280,30 @@ int main(int argc, char **argv){
   cudaEventSynchronize(stopInner);
   cudaEventElapsedTime(&elapsed_gpu_outer, startOuter, stopOuter);
   cudaEventElapsedTime(&elapsed_gpu_inner, startInner, stopInner);
-  printf("\nGPU time (start-to-finish): %f (msec)\n", elapsed_gpu_outer);
-  printf("GPU time (kernel only):     %f (msec)\n", elapsed_gpu_inner);
+  //printf("\nGPU time (start-to-finish): %f (msec)\n", elapsed_gpu_outer);
+  //printf("GPU time (kernel only):     %f (msec)\n", elapsed_gpu_inner);
+  printf("%f", elapsed_gpu_outer/1000.0);
   cudaEventDestroy(startOuter);
   cudaEventDestroy(startInner);
   cudaEventDestroy(stopOuter);
   cudaEventDestroy(stopInner);
 #endif
 
-  printf("Grid size: %d\nBlock size: %d\n", NUM_BLOCKS, ARR_SIZE/NUM_BLOCKS);
+  fprintf(stderr, "Grid size: %d\nBlock size: %d\n", NUM_BLOCKS, ARR_SIZE/NUM_BLOCKS);
 
-  double checksumGPU = 0;
-  double checksumSerial = 0;
+  float checksumGPU = 0;
+  //float checksumSerial = 0;
 
   // get checksum
-  for (i = 0; i < ARR_SIZE; i++) {
-    for (j = i; j < ARR_SIZE; j++) {
-      checksumGPU += h_result[i * ARR_SIZE + j];
-    }
+  checksumGPU = getChecksum(h_result, ARR_SIZE);
+  
+  if (ARR_SIZE <= 8) {
+    fprintf(stderr, "\n");
+    printMat(h_result, ARR_SIZE);
   }
 
-
-  printf("GPU checksum: %f\n", checksumGPU);
-
+  fprintf(stderr, "GPU checksum: %f\n", checksumGPU);
+  /*
   cudaEventCreate(&startSerial);
   cudaEventCreate(&stopSerial);
   cudaEventRecord(startSerial, 0);
@@ -257,12 +317,7 @@ int main(int argc, char **argv){
   cudaEventDestroy(startSerial);
   cudaEventDestroy(stopSerial);
 
-  // get checksum
-  for (i = 0; i < ARR_SIZE; i++) {
-    for (j = i; j < ARR_SIZE; j++) {
-      checksumSerial += h_serial[i * ARR_SIZE + j];
-    }
-  }
+  checksumSerial = getChecksum(h_serial, ARR_SIZE);
 
   printf("Serial checksum: %f\n", checksumSerial);
 
@@ -281,22 +336,23 @@ int main(int argc, char **argv){
   }
 
   printf("Maximum difference: %f\n", maxDiff);
-
+  */
   /*
   for(i = 0; i < 50; i++) {
     printf("%d:\t%.8f\t%.8f\n", i, h_result_gold[i], h_result[i]);
   }
   */
-
+  /*
   if (errCount > 0) {
-    printf("\n@ERROR: TEST FAILED: %d results did not matched\n", errCount);
+    fprintf(stderr, "\n@ERROR: TEST FAILED: %d results did not matched\n", errCount);
   }
   else if (zeroCount > 0){
-    printf("\n@ERROR: TEST FAILED: %d results (from GPU) are zero\n", zeroCount);
+    fprintf(stderr, "\n@ERROR: TEST FAILED: %d results (from GPU) are zero\n", zeroCount);
   }
   else {
-    printf("\nTEST PASSED: All results matched\n");
-  }
+    fprintf(stderr, "\nTEST PASSED: All results matched\n");
+  } 
+  */
 
   // Free-up device and host memory
   CUDA_SAFE_CALL(cudaFree(d_x));
@@ -306,12 +362,12 @@ int main(int argc, char **argv){
   free(h_x);
   free(h_y);
   free(h_result);
-  free(h_serial);
+  //free(h_serial);
 
   return 0;
 }
 
-void initializeArray2D(float *arr, int len, int seed) {
+void initializeArrayRand2D(float *arr, int len, int seed) {
   int i, j;
   float randNum;
   srand(seed);
@@ -325,3 +381,11 @@ void initializeArray2D(float *arr, int len, int seed) {
     }
   } 
 }
+
+void initializeArrayOrdered2D(float *arr, int len) {
+  long int i;
+
+  for (i = 0; i < len*len; i++) {
+    arr[i] = (float)i;
+  }
+} 

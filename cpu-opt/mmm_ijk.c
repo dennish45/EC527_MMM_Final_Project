@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
 	clock_gettime(CLOCK_REALTIME, &time2);
 
 	fprintf(stderr, "Checksum: %f\n", getChecksum(c0));
+	printMat(c0);
 	long int timeElapsedNs = time2.tv_nsec - time1.tv_nsec;
 	int timeElapsed = time2.tv_sec - time1.tv_sec;
 	resetResult(c0);
@@ -223,7 +224,7 @@ struct timespec diff(struct timespec start, struct timespec end)
 
 data_t getChecksum(matrix_ptr C) {
 	int i, j;
-	data_t sum;
+	data_t sum = 0;
   long int length = get_matrix_rowlen(C);
   data_t *c0 = get_matrix_start(C);
 	
@@ -257,9 +258,9 @@ void printMat(matrix_ptr A) {
 	
 	for (i = 0; i < length; i++) {
 		for (j = 0; j < length; j++) {
-			printf("%05f\t", a0[i*length+j]);
+			fprintf(stderr, "%05f\t", a0[i*length+j]);
 		}
-		printf("\n");
+		fprintf(stderr, "\n");
 	}
 
 
