@@ -146,7 +146,7 @@ int main() {
 
 	float checksum = getChecksum(h_C, ARR_SIZE);
 
-	printf("Checksum: %f\n", checksum);
+	fprintf(stderr, "Checksum: %f\n", checksum);
 
 
 	//Free GPU memory

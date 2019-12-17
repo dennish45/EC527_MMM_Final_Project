@@ -237,9 +237,9 @@ int main(int argc, char **argv){
   cudaEventRecord(startOuter, 0);
 #endif
 
-  fprintf(stderr, "\t... done\n");
+  //fprintf(stderr, "\t... done\n");
 
-  fprintf(stderr, "Transferring arrays to GPU memory ...");
+  //fprintf(stderr, "Transferring arrays to GPU memory ...");
 
   // Transfer the arrays to the GPU memory
   CUDA_SAFE_CALL(cudaMemcpy(d_x, h_x, allocSize, cudaMemcpyHostToDevice));
@@ -248,22 +248,22 @@ int main(int argc, char **argv){
   dim3 dimGrid(NUM_BLOCKS, NUM_BLOCKS);
   dim3 dimBlock(ARR_SIZE/NUM_BLOCKS, ARR_SIZE/NUM_BLOCKS);
 
-  fprintf(stderr, "\t... done\n");
+  //fprintf(stderr, "\t... done\n");
 
 //  printf("Launching kernel");
 
   // Launch the kernel
-  cudaPrintfInit();
+  //cudaPrintfInit();
 
-  fprintf(stderr, "Kernel initialized\n");
+  //fprintf(stderr, "Kernel initialized\n");
 
 #if PRINT_TIME
   cudaEventRecord(startInner, 0);
 #endif
 
   MatrixMulKernelGlobal<<<dimGrid, dimBlock>>>(d_x, d_y, d_result, ARR_SIZE);
-  cudaPrintfDisplay(stdout, true);
-  cudaPrintfEnd();
+  //cudaPrintfDisplay(stdout, true);
+  //cudaPrintfEnd();
 
 
   // Check for errors during launch
@@ -302,7 +302,7 @@ int main(int argc, char **argv){
     printMat(h_result, ARR_SIZE);
   }
 
-  fprintf(stderr, "GPU checksum: %f\n", checksumGPU);
+  fprintf(stderr, "Checksum: %f\n", checksumGPU);
   /*
   cudaEventCreate(&startSerial);
   cudaEventCreate(&stopSerial);
