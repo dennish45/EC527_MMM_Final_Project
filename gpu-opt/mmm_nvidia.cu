@@ -335,8 +335,8 @@ int main(int argc, char **argv){
   cudaEventRecord(startInner, 0);
 #endif
 
-  MatrixMulKernelShared<<<dimGrid, dimBlock>>>(d_x, d_y, d_result, ARR_SIZE);
-  //matrixMulCUDA<<<dimGrid, dimBlock>>>(d_x, d_y, d_result, ARR_SIZE);
+  //MatrixMulKernelShared<<<dimGrid, dimBlock>>>(d_x, d_y, d_result, ARR_SIZE);
+  matrixMulCUDA<<<dimGrid, dimBlock>>>(d_x, d_y, d_result, ARR_SIZE);
   cudaPrintfDisplay(stdout, true);
   cudaPrintfEnd();
 
