@@ -16,6 +16,7 @@ Optimizing MMM with scalar and vector techniques alongside multithreading. Final
 - More shell automation (block size, register blocks, GPU grid/block sizes - 16 threads^2 per block)
 - Loop unrolling and multiple accumulators
 - PThreads
+- Rename scripts to match their functions
 
 ### Future (after Tuesday)
 - Paper/analysis
