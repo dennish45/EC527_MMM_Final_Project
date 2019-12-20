@@ -4,8 +4,7 @@
 # nvcc mmm_shared.cu -o mmm_shared.out -arch compute_35 -code sm_35 -lcublas -DARR_SIZE=4160 -DNUM_BLOCKS=130 -Xptxas -O3
 # This is written for the ECE-HPC-02 machine ONLY. Run on other machines at your own risk.
 
-
-module load cuda/6.0
+module load cuda
 
 prgList=(
 	"mmm_vect_omp"

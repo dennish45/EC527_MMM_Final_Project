@@ -3,6 +3,8 @@
 # use this command to compile GPU programs (sub in GPU program name for the one you want, and change ARR_SIZE and NUM_BLOCKS to whatever):
 # nvcc mmm_shared.cu -o mmm_shared.out -arch compute_35 -code sm_35 -lcublas -DARR_SIZE=4160 -DNUM_BLOCKS=130 -Xptxas -O3
 
+module load cuda
+
 prgList=(
 	#"mmm_ijk"
 	#"mmm_ijk_omp"
