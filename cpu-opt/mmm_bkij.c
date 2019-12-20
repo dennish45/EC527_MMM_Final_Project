@@ -20,8 +20,8 @@
 //           252300    720300
 // for bigger than L3 cache with 3 arrays, ITERS = 4 , ARRSIZE = 143, 5 x 149 = 715, 715^2 <= 6144k
 
-#define BLOCKSIZE ARRSIZE/4
-#define INNERBLOCKSIZE BLOCKSIZE/2
+#define BLOCKSIZE 64
+#define INNERBLOCKSIZE 16
 #define KU INNERBLOCKSIZE
 
 
