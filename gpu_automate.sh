@@ -11,8 +11,8 @@ prgList=(
 	#"mmm_kij"
 	#"mmm_vect"
 	#"mmm_kij_omp"
-	# "mmm_global"
-	# "mmm_shared"
+	#"mmm_global"
+	#"mmm_shared"
 	"mmm_cublas"
 )
 
@@ -49,13 +49,13 @@ do
 			#num_blocks="$((array_size/(2**block_power)))"
 
 			# compile and run
-			nvcc $prg.cu -o $prg.out -arch compute_35 -code sm_35 -lcublas -DARR_SIZE=$array_size -Xptxas -O3
+			nvcc $prg.cu -o $prg.out -arch compute_60 -code sm_60 -lcublas -DARR_SIZE=$array_size -Xptxas -O3
 			#gcc -O"$((opt))" -lm -fopenmp -mavx2 -mfma -march=native -funroll-loops $prg.c -lrt -o $prg.out -DARRSIZE="$((2**i + 64))"
 			printval=`OMP_NUM_THREADS=16 ./$prg.out`
 			echo -en "$printval"
 			
 			# if last elem, no comma
-			if [ $i != 18 ]
+			if [ $i != 17 ]
 			then
 				echo -n ", "
 			fi
