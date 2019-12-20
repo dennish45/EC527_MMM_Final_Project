@@ -38,7 +38,7 @@ do
 	# 2112 = 66, 88, 96,132, 176, 192, 264, 352, 528, 704, 1056, and 2112
 
 	#for i in {7..12}
-	for i in {7..17}
+	for i in {7..14}
 	do
 		
 		# print optimization level
